@@ -94,11 +94,11 @@ mkfs.ext4 -F "${BOOT_PARTITION}" # Use -F to force format without prompt
 echo "Setting up LVM on ${LVM_PARTITION}..."
 pvcreate -f "${LVM_PARTITION}"
 vgcreate "${VG_NAME}" "${LVM_PARTITION}"
-lvcreate --type thin-pool -l 100%FREE -n "${THIN_POOL_NAME}" "${VG_NAME}"
+# lvcreate --type thin-pool -l 100%FREE -n "${THIN_POOL_NAME}" "${VG_NAME}"
 
 # Create root LV using 80% of the free space in the THIN POOL
 echo "Creating root logical volume with 80% of available pool space..."
-lvcreate --name "${ROOT_LV_NAME}" -l 80%FREE --thin "${THIN_POOL_NAME}" "${VG_NAME}"
+lvcreate --name "${ROOT_LV_NAME}" -l 80%FREE --thin "${VG_NAME}"
 
 echo "Formatting the root LVM volume..."
 mkfs.ext4 "/dev/${VG_NAME}/${ROOT_LV_NAME}"
