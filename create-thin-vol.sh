@@ -11,7 +11,7 @@ set -e
 set -o pipefail
 
 ## --- Configuration ---
-EFI_SIZE="512M"      # Size for the EFI System Partition
+EFI_SIZE="1G"      # Size for the EFI System Partition
 BOOT_SIZE="2G"     # Size for the /boot partition
 VG_NAME="ubuntu-vg"
 THIN_POOL_NAME="thinpool"
