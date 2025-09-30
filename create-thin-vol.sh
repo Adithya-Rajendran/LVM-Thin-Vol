@@ -98,7 +98,7 @@ lvcreate --type thin-pool -l 100%FREE -n "${THIN_POOL_NAME}" "${VG_NAME}"
 
 # Create root LV using 80% of the free space in the THIN POOL
 echo "Creating root logical volume with 80% of available pool space..."
-lvcreate -l 80%FREE -T "${VG_NAME}/${THIN_POOL_NAME}" -n "${ROOT_LV_NAME}"
+lvcreate --name "${ROOT_LV_NAME}" -l 80%FREE --thin "${THIN_POOL_NAME}" "${VG_NAME}"
 
 echo "Formatting the root LVM volume..."
 mkfs.ext4 "/dev/${VG_NAME}/${ROOT_LV_NAME}"
