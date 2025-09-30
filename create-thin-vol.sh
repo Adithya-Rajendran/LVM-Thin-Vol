@@ -86,9 +86,9 @@ EFI_PARTITION="${DEVICE}${PARTITION_SUFFIX}1"
 BOOT_PARTITION="${DEVICE}${PARTITION_SUFFIX}2"
 LVM_PARTITION="${DEVICE}${PARTITION_SUFFIX}3"
 
-echo "Formatting filesystems..."
-mkfs.fat -F 32 "${EFI_PARTITION}"
-mkfs.ext4 -F "${BOOT_PARTITION}" # Use -F to force format without prompt
+# echo "Formatting filesystems..."
+# mkfs.fat -F 32 "${EFI_PARTITION}"
+# mkfs.ext4 -F "${BOOT_PARTITION}" # Use -F to force format without prompt
 
 echo "Setting up LVM on ${LVM_PARTITION}..."
 pvcreate -f "${LVM_PARTITION}"
