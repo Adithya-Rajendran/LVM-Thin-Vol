@@ -6,9 +6,7 @@
 
 #===========================Configuration===============================
 SERVERS=(
-    "192.168.1.101"
-    "192.168.1.102"
-    "192.168.1.103"
+    "10.193.250.9"
 )
 SSH_USER="ubuntu"
 SSH_KEY="/home/ubuntu/.ssh/id_rsa"
@@ -28,7 +26,7 @@ fi
 
 if ! command -v parallel &> /dev/null; then
     echo -e "${RED}Error: GNU Parallel is not installed. Please install it to continue.${NC}"
-    echo "  sudo apt-get install parallel"
+    echo "   Run: sudo apt install parallel"
     exit 1
 fi
 
@@ -39,13 +37,14 @@ usage() {
     echo ""
     echo "Actions:"
     echo "  take <source_volume> <snapshot_name> [size]"
-    echo "      Example: $0 take /dev/vg0/root root-snap-$(date +%Y%m%d) 1G"
+    echo "      will try to create a thin volume if size is not provided"
+    echo "      Example: $0 take vg0/lv-0 root-snap-$(date +%Y%m%d) 1G"
     echo ""
     echo "  revert <snapshot_volume>"
-    echo "      Example: $0 revert /dev/vg0/root-snap-20250930"
+    echo "      Example: $0 revert vg0/root-snap-20250930"
     echo ""
     echo "  remove <snapshot_volume>"
-    echo "      Example: $0 remove /dev/vg0/root-snap-20250930"
+    echo "      Example: $0 remove vg0/root-snap-20250930"
     exit 1
 }
 
@@ -87,15 +86,23 @@ esac
 # This function will be executed by `parallel` for each server.
 run_on_remote() {
     server="$1"
-    ssh -o BatchMode=yes -o ConnectTimeout=10 -i "$SSH_KEY" "${SSH_USER}@${server}" "$CMD"
-}
+    echo "[DEBUG] Server: $server, Command: $CMD" >&2
 
+    ssh -o StrictHostKeyChecking=no \
+        -o UserKnownHostsFile=/dev/null \
+        -o BatchMode=yes \
+        -o ConnectTimeout=10 \
+        -i "$SSH_KEY" \
+        "${SSH_USER}@${server}" "$CMD"
+}
 # Export the function and variables so `parallel` subshells can access them
 export -f run_on_remote
 export SSH_USER SSH_KEY CMD
 
 echo -e "${BLUE}Dispatching action '${ACTION}' to all servers using GNU Parallel...${NC}"
 echo -e "A detailed log will be created at: ${BLUE}${LOG_FILE}${NC}"
+
+echo Running: $CMD
 
 # Use printf to safely pipe server names to parallel, one per line.
 # --tag: Prepends output lines with the server name.
@@ -119,3 +126,5 @@ else
     echo -e "\nReview the full output and check the log file '${LOG_FILE}' for more information."
     exit 1
 fi
+
+unset SSH_USER SSH_KEY CMD
