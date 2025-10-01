@@ -84,7 +84,7 @@ echo "Setting up LVM on ${LVM_PARTITION}..."
 pvcreate -f "${LVM_PARTITION}"
 vgcreate "${VG_NAME}" "${LVM_PARTITION}"
 
-lvcreate --type thin-pool -L 100%FREE --name "${THIN_VOL}" "${VG_NAME}"
+lvcreate --type thin-pool -l 100%FREE --name "${THIN_VOL}" "${VG_NAME}"
 
 echo "Creating root logical volume with 80% of available pool space..."
 lvcreate --name "${ROOT_LV_NAME}" -V $(lvs --noheadings --units b -o lv_size ${VG_NAME}/${THIN_VOL}) "${THIN_VOL}" "${VG_NAME}"
