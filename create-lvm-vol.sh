@@ -10,8 +10,7 @@
 set -e
 set -o pipefail
 
-## --- Configuration ---
-EFI_SIZE="1G"      # Size for the EFI System Partition
+EFI_SIZE="1G"      # Size for the EFI System (/boot/efi) Partition
 BOOT_SIZE="2G"     # Size for the /boot partition
 VG_NAME="vg0"
 ROOT_LV_NAME="lv-0"
@@ -44,7 +43,6 @@ echo "  - P3: LVM for the rest of the disk"
 echo ""
 echo "The LVM layout will be:"
 echo "  - VG:           ${VG_NAME}"
-echo "  - Thin Pool:    ${THIN_POOL_NAME} (100% of VG)"
 echo "  - Root LV:      ${ROOT_LV_NAME} (using 80% of the pool)"
 echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
 read -p "To confirm you understand and wish to proceed, type 'YES': " CONFIRMATION
@@ -54,16 +52,12 @@ if [[ "${CONFIRMATION}" != "YES" ]]; then
   exit 0
 fi
 
-# --- Execution ---
 echo ""
 echo "Wiping disk and creating partition table on ${DEVICE}..."
 
-# Calculate partition end points
 BOOT_START_POINT=${EFI_SIZE}
 BOOT_END_POINT=$((${EFI_SIZE%G} + ${BOOT_SIZE%G}))G
 
-# Use parted to create partitions non-interactively
-# The '--' ensures that device names starting with '-' are not treated as options.
 parted -s -a optimal -- "${DEVICE}" \
     mklabel gpt \
     mkpart "'EFI System Partition'" fat32 1MiB ${BOOT_START_POINT} \
@@ -72,9 +66,8 @@ parted -s -a optimal -- "${DEVICE}" \
     mkpart "'LVM Partition'" ext4 ${BOOT_END_POINT} 100% \
     set 3 lvm on
 
-# Let the kernel know about the new partition table
 partprobe "${DEVICE}"
-sleep 2 # Give the system a moment to create the device nodes
+sleep 2
 
 # Determine partition naming convention (e.g., /dev/sda1 vs /dev/nvme0n1p1)
 PARTITION_SUFFIX=""
@@ -86,18 +79,13 @@ EFI_PARTITION="${DEVICE}${PARTITION_SUFFIX}1"
 BOOT_PARTITION="${DEVICE}${PARTITION_SUFFIX}2"
 LVM_PARTITION="${DEVICE}${PARTITION_SUFFIX}3"
 
-# echo "Formatting filesystems..."
-# mkfs.fat -F 32 "${EFI_PARTITION}"
-# mkfs.ext4 -F "${BOOT_PARTITION}" # Use -F to force format without prompt
-
 echo "Setting up LVM on ${LVM_PARTITION}..."
 pvcreate -f "${LVM_PARTITION}"
 vgcreate "${VG_NAME}" "${LVM_PARTITION}"
 
 echo "Creating root logical volume with 80% of available pool space..."
-lvcreate --name "${ROOT_LV_NAME}" -l 80%FREE --thin "${VG_NAME}"
+lvcreate --name "${ROOT_LV_NAME}" -l 80%FREE "${VG_NAME}"
 
-# --- Completion ---
 echo ""
 echo "Success! Disk is partitioned and LVM is ready."
 echo "------------------------------------------------------------------"
@@ -105,14 +93,11 @@ echo "In the Ubuntu installer, choose 'Manual Partitioning' and assign:"
 echo ""
 echo "   Device:       ${EFI_PARTITION}"
 echo "   Mount Point:  /boot/efi"
-echo "   (Do not reformat)"
 echo ""
 echo "   Device:       ${BOOT_PARTITION}"
 echo "   Mount Point:  /boot"
-echo "   (Do not reformat)"
 echo ""
 echo "   Device:       /dev/mapper/${VG_NAME}-${ROOT_LV_NAME}"
 echo "   Mount Point:  /"
-echo "   (Do not reformat)"
 echo "------------------------------------------------------------------"
 echo "After assigning mount points, select 'Done' to proceed."
